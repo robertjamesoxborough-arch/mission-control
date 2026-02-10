@@ -1,4 +1,4 @@
-export const config = { runtime: "nodejs18.x" };
+export const config = { runtime: "nodejs" };
 
 function must(name, v) {
   if (!v) throw new Error(`Missing: ${name}`);
