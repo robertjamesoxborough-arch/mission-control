@@ -268,6 +268,8 @@
         <div class="split">
           <h2><span class="spark"></span> Today’s Status</h2>
           <button class="btn primary" id="whatNextBtn">What next?</button>
+          <button class="btn primary" id="checkJobsBtn">Check live roles</button>
+          <button class="btn" id="genCvBtn">Generate CV</button>
         </div>
         <div class="hr"></div>
 
@@ -907,6 +909,61 @@
 
   // ---- “What next?” and “Start next”
   $("whatNextBtn").onclick = ()=>{
+  // ---- Live jobs (backend)
+const PRIMARY = "https://mission-control-eight-blue.vercel.app";
+
+$("checkJobsBtn").onclick = async () => {
+  try {
+    toast("Checking…");
+    const r = await fetch(`${PRIMARY}/api/jobs`);
+    const data = await r.json();
+    alert(JSON.stringify(data, null, 2));
+  } catch (e) {
+    alert("Jobs check failed: " + (e.message || e));
+  }
+};
+
+// ---- CV generator (backend)
+$("genCvBtn").onclick = async () => {
+  try {
+    const roleTitle = prompt("Role title?", "Senior Manager / Head of Content");
+    if (!roleTitle) return;
+
+    const company = prompt("Company?", "Example Co");
+    if (!company) return;
+
+    const jobDescription = prompt("Paste job description (short ok):", "Paste here");
+    if (!jobDescription) return;
+
+    // Your profile source-of-truth (short for now; we’ll expand later)
+    const profile = `
+12+ years digital marketing & growth. Senior roles at Meta, PlayStation, NatWest, King, Google.
+Strengths: content + production leadership, cross-functional delivery, SEO/CRO, full-funnel strategy,
+platform marketing, stakeholder management, measurable outcomes.
+UK-based. Wants outcome ownership, judgment, execution in ambiguity.
+Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
+    `.trim();
+
+    toast("Generating CV…");
+    const r = await fetch(`${PRIMARY}/api/cv`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roleTitle, company, jobDescription, profile })
+    });
+
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || "CV failed");
+
+    // show in a new window for easy copy
+    const w = window.open("", "_blank");
+    w.document.write(`<pre style="white-space:pre-wrap;font:14px system-ui;padding:16px;">${escapeHtml(data.cv || "")}</pre>`);
+    w.document.close();
+
+    toast("CV ready.");
+  } catch (e) {
+    alert("CV failed: " + (e.message || e));
+  }
+};
     const m = pickNextMission();
     if(!m){ toast("No missions left. Add 1 small one."); return; }
     toast(`Next: ${m.title}`);
