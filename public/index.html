@@ -236,6 +236,7 @@
       font-size:12px; color:var(--text);
       box-shadow: 0 22px 38px rgba(2,6,23,0.16);
       display:none;
+      z-index:99;
     }
   </style>
 </head>
@@ -267,9 +268,11 @@
       <div class="card">
         <div class="split">
           <h2><span class="spark"></span> Today’s Status</h2>
-          <button class="btn primary" id="whatNextBtn">What next?</button>
-          <button class="btn primary" id="checkJobsBtn">Check live roles</button>
-          <button class="btn" id="genCvBtn">Generate CV</button>
+          <div class="row" style="gap:8px">
+            <button class="btn primary" id="whatNextBtn">What next?</button>
+            <button class="btn primary" id="checkJobsBtn">Check live roles</button>
+            <button class="btn" id="genCvBtn">Generate CV</button>
+          </div>
         </div>
         <div class="hr"></div>
 
@@ -298,7 +301,7 @@
 
         <div class="callout">
           <div class="hint">
-            <strong>ADHD rules that win:</strong><br>
+            <strong>Rules that win:</strong><br>
             1) <strong>Start ugly</strong> (momentum beats perfection)<br>
             2) <strong>Time-box</strong> (25–60 mins) <br>
             3) <strong>Cash + options first</strong>, then building
@@ -598,6 +601,8 @@
 (function(){
   const KEY = "mission_control_v3";
   const $ = (id) => document.getElementById(id);
+  const API_BASE = window.location.origin;
+
   const fmtDate = (d) => d.toISOString().slice(0,10);
   const today = new Date();
   const todayKey = fmtDate(today);
@@ -614,7 +619,7 @@
     toast._tm = setTimeout(()=> t.style.display="none", 1400);
   }
 
-  // ---- Seed jobs (subset of your list; you can paste full list in Jobs tab)
+  // ---- Seed jobs (subset)
   const seedJobs = [
     ["1","1","Propellernet","https://www.propellernet.co.uk/careers/","No jobs","","","",""],
     ["1.1","2","Velocity Partners","https://velocitypartners.com/jobs/","No jobs","","","",""],
@@ -659,21 +664,15 @@
       rules: ["IF I want to build, THEN I do 1 career action first."]
     },
     licence: { role:"", sentence:"", careerDone:"no" },
-    game: {
-      xpTotal: 0,
-      streak: 0,
-      lastCompleteDate: "",
-      todayXp: 0
-    },
+    game: { xpTotal: 0, streak: 0, lastCompleteDate: "", todayXp: 0 },
     targets: { work: 28, career: 8, build: 6, gym: 3, walk: 3, dog: 6, family: 10 },
     days: {},
     jobs: [],
-    logs: [], // {dateKey, type, hours, note}
-    plan: {}  // {weekKey: {slotId: [blocks]}}
+    logs: [],
+    plan: {}
   };
 
   function weekKeyFor(d){
-    // ISO-ish week key (YYYY-WW)
     const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     const dayNum = date.getUTCDay() || 7;
     date.setUTCDate(date.getUTCDate() + 4 - dayNum);
@@ -691,6 +690,7 @@
       }
     }
   }
+
   function load(){
     try{
       const raw = localStorage.getItem(KEY);
@@ -725,7 +725,6 @@
     }
   }
   function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
-
   let state = load();
 
   // ---- Tabs
@@ -838,11 +837,8 @@
 
         if(missions[i].done){
           awardForMission(missions[i]);
-          // auto log hours (timebox minutes -> hours) for weekly tracking
           const hrs = Math.max(0.25, (Number(missions[i].timebox||30)/60));
           state.logs.push({ dateKey: todayKey, type: missions[i].type, hours: round2(hrs), note: missions[i].title });
-        }else{
-          // no XP removal (keeps it positive)
         }
 
         save();
@@ -900,70 +896,13 @@
     if(!mins) return;
 
     const t = type.trim().toLowerCase();
-    if(t==="build" && state.licence.careerDone!=="yes"){
-      toast("Build added — but do 1 career action first.");
-    }
+    if(t==="build" && state.licence.careerDone!=="yes") toast("Build added — but do 1 career action first.");
     state.days[todayKey].missions.unshift({ id: uid(), title: title.trim(), type: t, timebox: Number(mins)||60, done:false });
     save(); renderMissions();
   };
 
-  // ---- “What next?” and “Start next”
+  // ---- Button handlers (ALL defined once, here)
   $("whatNextBtn").onclick = ()=>{
-  // ---- Live jobs (backend)
-const PRIMARY = "https://mission-control-eight-blue.vercel.app";
-
-$("checkJobsBtn").onclick = async () => {
-  try {
-    toast("Checking…");
-    const r = await fetch(`${PRIMARY}/api/jobs`);
-    const data = await r.json();
-    alert(JSON.stringify(data, null, 2));
-  } catch (e) {
-    alert("Jobs check failed: " + (e.message || e));
-  }
-};
-
-// ---- CV generator (backend)
-$("genCvBtn").onclick = async () => {
-  try {
-    const roleTitle = prompt("Role title?", "Senior Manager / Head of Content");
-    if (!roleTitle) return;
-
-    const company = prompt("Company?", "Example Co");
-    if (!company) return;
-
-    const jobDescription = prompt("Paste job description (short ok):", "Paste here");
-    if (!jobDescription) return;
-
-    // Your profile source-of-truth (short for now; we’ll expand later)
-    const profile = `
-12+ years digital marketing & growth. Senior roles at Meta, PlayStation, NatWest, King, Google.
-Strengths: content + production leadership, cross-functional delivery, SEO/CRO, full-funnel strategy,
-platform marketing, stakeholder management, measurable outcomes.
-UK-based. Wants outcome ownership, judgment, execution in ambiguity.
-Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
-    `.trim();
-
-    toast("Generating CV…");
-    const r = await fetch(`${PRIMARY}/api/cv`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roleTitle, company, jobDescription, profile })
-    });
-
-    const data = await r.json();
-    if (!data.ok) throw new Error(data.error || "CV failed");
-
-    // show in a new window for easy copy
-    const w = window.open("", "_blank");
-    w.document.write(`<pre style="white-space:pre-wrap;font:14px system-ui;padding:16px;">${escapeHtml(data.cv || "")}</pre>`);
-    w.document.close();
-
-    toast("CV ready.");
-  } catch (e) {
-    alert("CV failed: " + (e.message || e));
-  }
-};
     const m = pickNextMission();
     if(!m){ toast("No missions left. Add 1 small one."); return; }
     toast(`Next: ${m.title}`);
@@ -978,17 +917,61 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     toast(`Started: ${m.title}`);
   };
 
+  $("checkJobsBtn").onclick = async ()=>{
+    try{
+      toast("Checking…");
+      const r = await fetch(`${API_BASE}/api/jobs`);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const txt = await r.text();
+      alert(txt);
+    }catch(e){
+      alert("Jobs check failed: " + (e.message || e));
+    }
+  };
+
+  $("genCvBtn").onclick = async ()=>{
+    try{
+      const roleTitle = prompt("Role title?", "Senior Manager / Head of Content");
+      if(!roleTitle) return;
+
+      const company = prompt("Company?", "Example Co");
+      if(!company) return;
+
+      const jobDescription = prompt("Paste job description:", "");
+      if(!jobDescription) return;
+
+      const profile = `
+12+ years digital marketing & growth. Senior roles at Meta, PlayStation, NatWest, King, Google.
+Strengths: content + production leadership, cross-functional delivery, SEO/CRO, full-funnel strategy,
+platform marketing, stakeholder management, measurable outcomes.
+Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
+      `.trim();
+
+      toast("Generating CV…");
+      const r = await fetch(`${API_BASE}/api/cv`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ roleTitle, company, jobDescription, profile })
+      });
+
+      const data = await r.json().catch(()=> ({}));
+      if(!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
+
+      const w = window.open("", "_blank");
+      w.document.write(`<pre style="white-space:pre-wrap;font:14px system-ui;padding:16px;">${escapeHtml(data.cv || "")}</pre>`);
+      w.document.close();
+      toast("CV ready.");
+    }catch(e){
+      alert("CV failed: " + (e.message || e));
+    }
+  };
+
   function pickNextMission(){
     ensureDay();
     const missions = state.days[todayKey].missions;
     const undone = missions.filter(x=>!x.done);
-
     if(!undone.length) return null;
 
-    // ADHD-friendly priority logic:
-    // 1) If no career action done, pick a career mission first
-    // 2) If build appears but careerDone is "no", skip it
-    // 3) Prefer short timeboxes for quick wins
     const careerDone = state.licence.careerDone === "yes";
     let candidates = undone.slice();
 
@@ -1015,7 +998,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
 
   // ---- Game system
   function levelFromXp(xp){
-    // simple curve: 100 * lvl
     let lvl = 1;
     let need = 100;
     let remaining = xp;
@@ -1029,10 +1011,8 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
 
   function awardForMission(m){
     const meta = typeMeta(m.type);
-    // Streak logic: streak = consecutive days with any completion
     const last = state.game.lastCompleteDate;
     if(last !== todayKey){
-      // if yesterday, +1; else reset to 1
       const y = new Date(today); y.setDate(y.getDate()-1);
       const yKey = fmtDate(y);
       state.game.streak = (last === yKey) ? (state.game.streak + 1) : 1;
@@ -1041,16 +1021,11 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     }
     state.game.xpTotal += meta.xp;
     state.game.todayXp += meta.xp;
-
-    // If career mission completed, mark careerDone yes automatically
     if(m.type === "career") state.licence.careerDone = "yes";
   }
 
   function renderGame(){
-    // reset todayXp if new day and no completion yet
-    if(state.game.lastCompleteDate !== todayKey){
-      state.game.todayXp = 0;
-    }
+    if(state.game.lastCompleteDate !== todayKey) state.game.todayXp = 0;
     const {lvl, within, need} = levelFromXp(state.game.xpTotal);
     $("lvl").textContent = String(lvl);
     $("streak").textContent = String(state.game.streak || 0);
@@ -1058,15 +1033,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     const pct = Math.min(100, Math.round((within/need)*100));
     $("xpFill").style.width = pct + "%";
     $("xpHint").innerHTML = `<span class="pill"><strong>${pct}%</strong> to Level ${lvl+1}</span> <span class="muted">(${within}/${need} XP)</span>`;
-  }
-
-  function weekKeysLast7(){
-    const keys = [];
-    for(let i=0;i<7;i++){
-      const d = new Date(today); d.setDate(d.getDate()-i);
-      keys.push(fmtDate(d));
-    }
-    return keys;
   }
 
   function renderBadges(){
@@ -1082,9 +1048,7 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     if(hours.dog >= 3) badges.push("🐶 Penny cared for");
     if(hours.family >= 4) badges.push("❤️ Family anchor");
 
-    $("badges").innerHTML = badges.length
-      ? ("• " + badges.join("<br>• "))
-      : "No badges yet this week. Start with one small win.";
+    $("badges").innerHTML = badges.length ? ("• " + badges.join("<br>• ")) : "No badges yet this week. Start with one small win.";
   }
 
   // ---- Weekly hour targets + logs
@@ -1092,7 +1056,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
 
   function sumWeekHours(wkKey){
     const s = {work:0, career:0, build:0, gym:0, walk:0, dog:0, family:0};
-    // Sum logs for dates in this week
     for(const l of state.logs){
       const d = new Date(l.dateKey + "T00:00:00");
       if(weekKeyFor(d) !== wkKey) continue;
@@ -1149,12 +1112,8 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
   const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   const slots = ["AM 1","AM 2","PM 1","PM 2","EVE"];
   function slotId(dayIndex, slotIndex){ return `${dayIndex}-${slotIndex}`; }
-
   function currentWeekKey(){ return weekKeyFor(today); }
-
-  function ensureWeekPlan(wk){
-    if(!state.plan[wk]) state.plan[wk] = {};
-  }
+  function ensureWeekPlan(wk){ if(!state.plan[wk]) state.plan[wk] = {}; }
 
   function renderPlanner(){
     const wk = currentWeekKey();
@@ -1162,7 +1121,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     const el = $("planner");
     el.innerHTML = "";
 
-    // Header row
     el.appendChild(div("pl-h",""));
     for(let d=0; d<7; d++) el.appendChild(div("pl-h", days[d]));
 
@@ -1190,7 +1148,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
         });
 
         cell.onclick = (e)=>{
-          // if clicking remove button, ignore
           if(e.target && e.target.dataset && e.target.dataset.x) return;
           addBlockToSlot(id);
         };
@@ -1242,7 +1199,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     const wk = currentWeekKey();
     ensureWeekPlan(wk);
 
-    // find next empty slot
     for(let s=0;s<slots.length;s++){
       for(let d=0;d<7;d++){
         const id = slotId(d,s);
@@ -1266,7 +1222,6 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
   };
 
   $("autoPlanBtn").onclick = ()=>{
-    // Simple autoplan: dog daily EVE, gym Mon/Wed/Fri PM2, career Tue/Thu AM1, build Wed AM2, family Sat/Sun PM1
     const wk = currentWeekKey();
     state.plan[wk] = {};
 
@@ -1472,9 +1427,7 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     const s = sec%60;
     return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
   }
-  function updateTimerUI(){
-    $("timerLeft").textContent = fmtTimer(timerSec);
-  }
+  function updateTimerUI(){ $("timerLeft").textContent = fmtTimer(timerSec); }
   function resetTimer(){
     const mins = Number($("timerPreset").value)||60;
     timerSec = mins * 60;
@@ -1532,29 +1485,11 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     resetTimer();
   }
 
-  // Set initial tab buttons
-  function initTabs(){
-    // attach click for tab switching
-    // already in renderTabs
-  }
-
-  // Default missions if empty
   ensureDay();
   addDefaultMissionsIfEmpty();
   save();
-
   render();
 })();
-  const PRIMARY = "https://mission-control-eight-blue.vercel.app";
-
-$("checkJobsBtn").onclick = async () => {
-  const r = await fetch(`${PRIMARY}/api/jobs`);
-  alert(await r.text());
-};
-
-$("genCvBtn").onclick = async () => {
-  alert("CV generator wired. Next step will open prompts.");
-};
 </script>
 </body>
 </html>
