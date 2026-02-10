@@ -1545,6 +1545,16 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
 
   render();
 })();
+  const PRIMARY = "https://mission-control-eight-blue.vercel.app";
+
+$("checkJobsBtn").onclick = async () => {
+  const r = await fetch(`${PRIMARY}/api/jobs`);
+  alert(await r.text());
+};
+
+$("genCvBtn").onclick = async () => {
+  alert("CV generator wired. Next step will open prompts.");
+};
 </script>
 </body>
 </html>
