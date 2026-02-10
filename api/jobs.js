@@ -1,9 +1,11 @@
-export default async function handler(req, res) {
+export const config = {
+  runtime: 'nodejs18.x',
+};
+
+export default function handler(req, res) {
   res.status(200).json({
     status: "ok",
     message: "Jobs API wired correctly",
     timestamp: new Date().toISOString()
   });
 }
-
-
