@@ -264,6 +264,13 @@
 <main class="wrap">
   <!-- DASH -->
   <section id="viewDash" class="view">
+    <div id="returnBanner" style="display:none; margin-bottom:12px" class="callout">
+      <div class="split">
+        <div class="hint" id="returnMsg"></div>
+        <button class="x" id="returnDismiss" style="font-size:16px">×</button>
+      </div>
+      <div class="row" style="margin-top:10px; gap:8px; flex-wrap:wrap" id="returnOptions"></div>
+    </div>
     <div class="grid cols3">
       <div class="card">
         <div class="split">
@@ -284,12 +291,18 @@
           <div class="box">
             <div class="t">Streak</div>
             <div class="n" id="streak">0</div>
+            <div class="t" id="bestStreakHint" style="margin-top:2px; font-size:10px"></div>
           </div>
           <div class="box">
             <div class="t">Today XP</div>
             <div class="n" id="xpToday">0</div>
           </div>
         </div>
+
+        <div class="hr"></div>
+
+        <div class="muted" style="font-weight:900; margin-bottom:6px">Today's energy</div>
+        <div class="row" id="moodRow" style="gap:8px"></div>
 
         <div class="hr"></div>
 
@@ -664,12 +677,14 @@
       rules: ["IF I want to build, THEN I do 1 career action first."]
     },
     licence: { role:"", sentence:"", careerDone:"no" },
-    game: { xpTotal: 0, streak: 0, lastCompleteDate: "", todayXp: 0 },
+    game: { xpTotal: 0, streak: 0, bestStreak: 0, lastCompleteDate: "", todayXp: 0 },
     targets: { work: 28, career: 8, build: 6, gym: 3, walk: 3, dog: 6, family: 10 },
     days: {},
     jobs: [],
     logs: [],
-    plan: {}
+    plan: {},
+    mood: {},
+    reflections: {}
   };
 
   function weekKeyFor(d){
@@ -1016,6 +1031,7 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
       const y = new Date(today); y.setDate(y.getDate()-1);
       const yKey = fmtDate(y);
       state.game.streak = (last === yKey) ? (state.game.streak + 1) : 1;
+      state.game.bestStreak = Math.max(state.game.bestStreak || 0, state.game.streak);
       state.game.lastCompleteDate = todayKey;
       state.game.todayXp = 0;
     }
@@ -1029,6 +1045,9 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
     const {lvl, within, need} = levelFromXp(state.game.xpTotal);
     $("lvl").textContent = String(lvl);
     $("streak").textContent = String(state.game.streak || 0);
+    const best = state.game.bestStreak || 0;
+    const cur = state.game.streak || 0;
+    if($("bestStreakHint")) $("bestStreakHint").textContent = best > cur ? `best: ${best}` : (best > 0 ? `best: ${best}` : "");
     $("xpToday").textContent = String(state.game.todayXp || 0);
     const pct = Math.min(100, Math.round((within/need)*100));
     $("xpFill").style.width = pct + "%";
@@ -1457,6 +1476,89 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
   $("timerPause").onclick = ()=> pauseTimer();
   $("timerReset").onclick = ()=> resetTimer();
 
+  // ---- Mood
+  const MOODS = [
+    { val: "low",  label: "😔 Low" },
+    { val: "mid",  label: "😐 OK"  },
+    { val: "high", label: "😊 Good" }
+  ];
+
+  function renderMood(){
+    const row = $("moodRow");
+    if(!row) return;
+    const current = (state.mood || {})[todayKey] || "";
+    row.innerHTML = "";
+    MOODS.forEach(m => {
+      const btn = document.createElement("button");
+      const active = current === m.val;
+      btn.className = "btn" + (active ? " good" : "");
+      if(active) btn.style.borderColor = "rgba(22,163,74,0.5)";
+      btn.textContent = m.label;
+      btn.onclick = () => {
+        if(!state.mood) state.mood = {};
+        state.mood[todayKey] = m.val;
+        save();
+        renderMood();
+        toast("Energy logged.");
+      };
+      row.appendChild(btn);
+    });
+  }
+
+  // ---- Return state check (ADHD-friendly welcome back)
+  function checkReturnState(){
+    const banner = $("returnBanner");
+    if(!banner) return;
+
+    if(!state.reflections) state.reflections = {};
+    if(state.reflections[todayKey + "_returnDismissed"]) return;
+
+    const yDate = new Date(today);
+    yDate.setDate(yDate.getDate() - 1);
+    const yKey = fmtDate(yDate);
+    const yDay = state.days[yKey];
+    const incomplete = yDay ? yDay.missions.filter(m => !m.done) : [];
+
+    const lastActive = state.game.lastCompleteDate;
+    const isReturningAfterGap = lastActive && lastActive !== todayKey && lastActive !== yKey && lastActive !== "";
+
+    if(incomplete.length === 0 && !isReturningAfterGap) return;
+
+    const msgEl = $("returnMsg");
+    const optEl = $("returnOptions");
+
+    if(isReturningAfterGap && incomplete.length === 0){
+      msgEl.innerHTML = `<strong>Welcome back.</strong> Good to see you again. No guilt — just pick one thing and go.`;
+    } else {
+      msgEl.innerHTML = `<strong>Welcome back.</strong> Yesterday had ${incomplete.length} mission${incomplete.length!==1?"s":""} unfinished. <em>What got in the way?</em>`;
+    }
+
+    const options = ["Life happened", "Overtired / burnt out", "Got distracted", "Plan changed", "Just moved on"];
+    optEl.innerHTML = "";
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.style.fontSize = "12px";
+      btn.textContent = opt;
+      btn.onclick = () => {
+        state.reflections[yKey + "_blocked"] = opt;
+        state.reflections[todayKey + "_returnDismissed"] = true;
+        save();
+        banner.style.display = "none";
+        toast("Noted. Today is a fresh start.");
+      };
+      optEl.appendChild(btn);
+    });
+
+    banner.style.display = "block";
+
+    $("returnDismiss").onclick = () => {
+      state.reflections[todayKey + "_returnDismissed"] = true;
+      save();
+      banner.style.display = "none";
+    };
+  }
+
   // ---- Helpers
   function esc(s){ return escapeHtml(s); }
   function escAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
@@ -1483,6 +1585,8 @@ Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
 
     renderValues();
     resetTimer();
+    renderMood();
+    checkReturnState();
   }
 
   ensureDay();
