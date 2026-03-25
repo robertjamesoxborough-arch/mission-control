@@ -278,7 +278,6 @@
           <div class="row" style="gap:8px">
             <button class="btn primary" id="whatNextBtn">What next?</button>
             <button class="btn primary" id="checkJobsBtn">Check live roles</button>
-            <button class="btn" id="genCvBtn">Generate CV</button>
           </div>
         </div>
         <div class="hr"></div>
@@ -944,42 +943,6 @@
     }
   };
 
-  $("genCvBtn").onclick = async ()=>{
-    try{
-      const roleTitle = prompt("Role title?", "Senior Manager / Head of Content");
-      if(!roleTitle) return;
-
-      const company = prompt("Company?", "Example Co");
-      if(!company) return;
-
-      const jobDescription = prompt("Paste job description:", "");
-      if(!jobDescription) return;
-
-      const profile = `
-12+ years digital marketing & growth. Senior roles at Meta, PlayStation, NatWest, King, Google.
-Strengths: content + production leadership, cross-functional delivery, SEO/CRO, full-funnel strategy,
-platform marketing, stakeholder management, measurable outcomes.
-Education: BA (Hons) Digital Media & Marketing, Oxford Brookes.
-      `.trim();
-
-      toast("Generating CV…");
-      const r = await fetch(`${API_BASE}/api/cv`, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ roleTitle, company, jobDescription, profile })
-      });
-
-      const data = await r.json().catch(()=> ({}));
-      if(!r.ok || !data.ok) throw new Error(data.error || `HTTP ${r.status}`);
-
-      const w = window.open("", "_blank");
-      w.document.write(`<pre style="white-space:pre-wrap;font:14px system-ui;padding:16px;">${escapeHtml(data.cv || "")}</pre>`);
-      w.document.close();
-      toast("CV ready.");
-    }catch(e){
-      alert("CV failed: " + (e.message || e));
-    }
-  };
 
   function pickNextMission(){
     ensureDay();
