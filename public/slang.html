@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Slang Translator ✨</title>
+  <style>
+    :root {
+      --bg: #f6f8ff;
+      --panel: #ffffff;
+      --text: #0b1220;
+      --muted: #516074;
+      --line: #e2e8f0;
+      --accent: #2563eb;
+      --accent2: #7c3aed;
+      --pink: #ec4899;
+      --radius: 18px;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 600px at 10% 0%, rgba(37,99,235,0.14), transparent 55%),
+        radial-gradient(900px 600px at 90% 10%, rgba(124,58,237,0.12), transparent 55%),
+        radial-gradient(800px 520px at 50% 100%, rgba(236,72,153,0.10), transparent 60%),
+        var(--bg);
+    }
+
+    header {
+      position: sticky; top: 0; z-index: 8;
+      background: rgba(246,248,255,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 14px; }
+    .topbar { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 34px; height: 34px; border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed, #ec4899);
+      box-shadow: 0 18px 35px rgba(37,99,235,0.22);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .brand-text h1 { font-size: 16px; margin: 0; letter-spacing: .2px; }
+    .brand-text .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    a.back {
+      margin-left: auto; font-size: 13px; color: var(--muted);
+      text-decoration: none; display: flex; align-items: center; gap: 4px;
+    }
+    a.back:hover { color: var(--accent); }
+
+    main { padding: 32px 14px 60px; max-width: 860px; margin: 0 auto; }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .hero-emoji { font-size: 56px; line-height: 1; margin-bottom: 10px; }
+    .hero h2 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 800; margin: 0 0 8px;
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #ec4899 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p { color: var(--muted); font-size: 15px; margin: 0; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 14px 40px rgba(2,6,23,0.07);
+      margin-bottom: 20px;
+    }
+
+    .vibe-row {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    .vibe-label {
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .8px;
+      display: block; margin-bottom: 8px;
+    }
+    .vibe-btn {
+      padding: 8px 16px; border-radius: 999px;
+      border: 1.5px solid var(--line); background: var(--bg);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      color: var(--muted); transition: all .15s ease;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .vibe-btn:hover { border-color: rgba(37,99,235,0.4); color: var(--text); }
+    .vibe-btn.active {
+      border-color: transparent;
+      background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(124,58,237,0.10), rgba(236,72,153,0.08));
+      color: var(--text);
+      box-shadow: 0 0 0 1.5px rgba(124,58,237,0.35);
+    }
+
+    .input-area {
+      position: relative;
+      margin-bottom: 14px;
+    }
+    textarea {
+      width: 100%; min-height: 110px;
+      border: 1.5px solid var(--line); border-radius: 14px;
+      padding: 14px 16px; font-size: 15px; font-family: var(--sans);
+      color: var(--text); background: #fafbff;
+      resize: vertical; outline: none;
+      transition: border-color .15s;
+      line-height: 1.55;
+    }
+    textarea:focus { border-color: rgba(124,58,237,0.45); background: #fff; }
+    textarea::placeholder { color: #9aa5b4; }
+
+    .char-count {
+      position: absolute; bottom: 10px; right: 14px;
+      font-size: 11px; color: var(--muted);
+      pointer-events: none;
+    }
+
+    .actions { display: flex; gap: 10px; align-items: center; }
+    .btn-translate {
+      flex: 1;
+      padding: 12px 20px; border-radius: 14px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed, #ec4899);
+      color: #fff; font-size: 15px; font-weight: 700;
+      border: none; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(124,58,237,0.30);
+      transition: transform .1s ease, box-shadow .1s ease;
+      letter-spacing: .2px;
+    }
+    .btn-translate:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(124,58,237,0.38);
+    }
+    .btn-translate:active { transform: translateY(0); }
+    .btn-translate:disabled {
+      opacity: .6; cursor: not-allowed; transform: none;
+    }
+    .btn-clear {
+      padding: 12px 16px; border-radius: 14px;
+      background: var(--bg); border: 1.5px solid var(--line);
+      color: var(--muted); font-size: 13px; cursor: pointer;
+      transition: all .1s ease;
+    }
+    .btn-clear:hover { border-color: rgba(220,38,38,0.4); color: #dc2626; }
+
+    .output-card {
+      display: none;
+      background: linear-gradient(135deg,
+        rgba(37,99,235,0.05) 0%,
+        rgba(124,58,237,0.05) 50%,
+        rgba(236,72,153,0.05) 100%
+      );
+      border: 1.5px solid rgba(124,58,237,0.2);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: relative;
+      box-shadow: 0 14px 40px rgba(124,58,237,0.08);
+    }
+    .output-card.visible { display: block; }
+    .output-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--accent2);
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 14px;
+    }
+    .output-label .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent2);
+    }
+    .output-label .dot.pulsing {
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    #output-text {
+      font-size: 18px; line-height: 1.6; font-weight: 500;
+      color: var(--text); min-height: 28px;
+      white-space: pre-wrap;
+    }
+    .cursor {
+      display: inline-block;
+      width: 2px; height: 1.1em;
+      background: var(--accent2);
+      margin-left: 1px;
+      vertical-align: text-bottom;
+      animation: blink .7s steps(1) infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .output-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 16px; flex-wrap: wrap; gap: 10px;
+    }
+    .btn-copy {
+      padding: 8px 16px; border-radius: 10px;
+      background: var(--panel); border: 1.5px solid var(--line);
+      font-size: 13px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+      transition: all .1s ease;
+    }
+    .btn-copy:hover { border-color: rgba(22,163,74,0.4); color: #16a34a; }
+    .btn-copy.copied { border-color: rgba(22,163,74,0.4); color: #16a34a; }
+
+    .examples {
+      margin-top: 28px;
+    }
+    .examples-label {
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .8px;
+      margin-bottom: 10px;
+    }
+    .example-chips {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .chip {
+      padding: 7px 14px; border-radius: 999px;
+      background: var(--panel); border: 1px solid var(--line);
+      font-size: 13px; color: var(--muted); cursor: pointer;
+      transition: all .12s ease;
+      box-shadow: 0 4px 10px rgba(2,6,23,0.04);
+    }
+    .chip:hover {
+      border-color: rgba(124,58,237,0.35); color: var(--text);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(124,58,237,0.12);
+    }
+
+    .error-msg {
+      display: none; color: #dc2626;
+      font-size: 13px; margin-top: 8px;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(220,38,38,0.06);
+      border: 1px solid rgba(220,38,38,0.2);
+    }
+    .error-msg.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap topbar">
+    <div class="logo">✨</div>
+    <div class="brand-text">
+      <h1>Slang Translator</h1>
+      <div class="sub">No cap, this actually slaps fr fr</div>
+    </div>
+    <a href="/" class="back">← Mission Control</a>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="hero-emoji">💅🔥🫡</div>
+    <h2>Talk Like the Kids Do</h2>
+    <p>Type any boring normal sentence and watch it get a massive glow-up</p>
+  </div>
+
+  <div class="card">
+    <span class="vibe-label">Pick your vibe</span>
+    <div class="vibe-row">
+      <button class="vibe-btn active" data-vibe="genz">🧢 Gen Z</button>
+      <button class="vibe-btn" data-vibe="genalpha">🗿 Gen Alpha</button>
+      <button class="vibe-btn" data-vibe="mixed">🤯 Maximum Brainrot</button>
+    </div>
+
+    <div class="input-area">
+      <textarea
+        id="input-text"
+        placeholder="Type something painfully normal here... like &quot;I am going to the grocery store to buy some milk&quot;"
+        maxlength="500"
+      ></textarea>
+      <span class="char-count"><span id="char-num">0</span>/500</span>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <div class="actions">
+      <button class="btn-translate" id="btn-translate">
+        ✨ Hit it with the Drip
+      </button>
+      <button class="btn-clear" id="btn-clear" title="Clear all">✕</button>
+    </div>
+  </div>
+
+  <div class="output-card" id="output-card">
+    <div class="output-label">
+      <span class="dot" id="status-dot"></span>
+      <span id="output-label-text">Translation</span>
+    </div>
+    <div id="output-text"></div>
+    <div class="output-footer">
+      <button class="btn-copy" id="btn-copy">📋 Copy that</button>
+    </div>
+  </div>
+
+  <div class="examples">
+    <div class="examples-label">Try these if you're stuck</div>
+    <div class="example-chips">
+      <span class="chip" data-text="I am very tired and need to go to sleep">I am very tired and need to sleep</span>
+      <span class="chip" data-text="That movie was absolutely incredible and I loved every minute of it">That movie was incredible</span>
+      <span class="chip" data-text="I think this new restaurant is very good and you should try it">This restaurant is very good</span>
+      <span class="chip" data-text="I cannot believe how much that person annoyed me today">That person really annoyed me</span>
+      <span class="chip" data-text="I worked very hard today and achieved a lot">I worked hard today</span>
+      <span class="chip" data-text="I am feeling confident and looking great today">I look great today</span>
+    </div>
+  </div>
+</main>
+
+<script>
+  const inputEl = document.getElementById('input-text');
+  const charNum = document.getElementById('char-num');
+  const btnTranslate = document.getElementById('btn-translate');
+  const btnClear = document.getElementById('btn-clear');
+  const outputCard = document.getElementById('output-card');
+  const outputText = document.getElementById('output-text');
+  const statusDot = document.getElementById('status-dot');
+  const outputLabel = document.getElementById('output-label-text');
+  const btnCopy = document.getElementById('btn-copy');
+  const errorMsg = document.getElementById('error-msg');
+
+  let selectedVibe = 'genz';
+  let isStreaming = false;
+
+  // Vibe buttons
+  document.querySelectorAll('.vibe-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.vibe-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedVibe = btn.dataset.vibe;
+    });
+  });
+
+  // Char counter
+  inputEl.addEventListener('input', () => {
+    charNum.textContent = inputEl.value.length;
+  });
+
+  // Example chips
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      inputEl.value = chip.dataset.text;
+      charNum.textContent = inputEl.value.length;
+      inputEl.focus();
+    });
+  });
+
+  // Clear
+  btnClear.addEventListener('click', () => {
+    inputEl.value = '';
+    charNum.textContent = '0';
+    outputCard.classList.remove('visible');
+    hideError();
+  });
+
+  // Copy
+  btnCopy.addEventListener('click', () => {
+    const txt = outputText.innerText.replace(/\|$/, '').trim();
+    if (!txt) return;
+    navigator.clipboard.writeText(txt).then(() => {
+      btnCopy.textContent = '✅ Copied fr fr';
+      btnCopy.classList.add('copied');
+      setTimeout(() => {
+        btnCopy.textContent = '📋 Copy that';
+        btnCopy.classList.remove('copied');
+      }, 2000);
+    });
+  });
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+  }
+  function hideError() {
+    errorMsg.classList.remove('visible');
+  }
+
+  function setStreaming(on) {
+    isStreaming = on;
+    btnTranslate.disabled = on;
+    btnTranslate.textContent = on ? '⏳ Cooking up the drip...' : '✨ Hit it with the Drip';
+    statusDot.classList.toggle('pulsing', on);
+    outputLabel.textContent = on ? 'Translating...' : 'Translation';
+  }
+
+  // Main translate
+  btnTranslate.addEventListener('click', async () => {
+    const text = inputEl.value.trim();
+    if (!text) {
+      showError('Bestie you gotta type something first 💀');
+      return;
+    }
+    hideError();
+
+    setStreaming(true);
+    outputCard.classList.add('visible');
+    outputText.innerHTML = '<span class="cursor">|</span>';
+
+    let accumulated = '';
+
+    try {
+      const res = await fetch('/api/slang', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, vibe: selectedVibe })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Something went cooked' }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) {
+              accumulated += parsed.text;
+              outputText.innerHTML = escapeHtml(accumulated) + '<span class="cursor">|</span>';
+            }
+          } catch (_) {}
+        }
+      }
+
+      outputText.innerHTML = escapeHtml(accumulated);
+    } catch (err) {
+      outputCard.classList.remove('visible');
+      showError('Uh oh, something went mid: ' + err.message);
+    } finally {
+      setStreaming(false);
+    }
+  });
+
+  // Enter to submit (Shift+Enter for newline)
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+      e.preventDefault();
+      btnTranslate.click();
+    }
+  });
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+</script>
+</body>
+</html>
